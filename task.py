@@ -1,6 +1,8 @@
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
+# Add helper function to get rid of the duplicate code for the non-negative values, and cannot log dates into the future
+
 VALID_UNITS = ("miles", "hours")
 
 class Task():
@@ -10,15 +12,8 @@ class Task():
     def maintenance_due(self):
         raise NotImplementedError("Subclasses must implement maintenance_due()")
 
-class Component():
-    def __init__(self, name):
-        self.name = name
-        self.tasks = []
-
-    def add_task(self, task):
-        if not isinstance(task, Task):
-            raise TypeError("task must be a Task instance")
-        self.tasks.append(task)
+    def service_update(self, update_service):
+        raise NotImplementedError("Subclasses must implement service_update()")
 
 
 class MeteringTask(Task):
@@ -56,6 +51,22 @@ class MeteringTask(Task):
         else:
             return "ok"
 
+    def service_update(self, update_service):
+        if update_service < 0:
+            raise ValueError(f"The last service cannot be negative (got {update_service})")
+        if update_service > self.current_reading:
+            raise ValueError(f"The last service ({update_service}) cannot be greater than the current reading")
+        self.last_serviced = update_service
+
+    def reading_update(self, new_reading):
+        if new_reading < 0:
+            raise ValueError(f"The new_reading cannot be negative (got {new_reading})")
+        if new_reading < self.last_serviced:
+            raise ValueError(f"The current reading ({new_reading}) cannot be less than last serviced ({self.last_serviced})")
+
+        self.current_reading = new_reading
+
+
 class CalendarTask(Task):
     def __init__(self, name, interval, last_serviced, warning_buffer):
         self._calendar_validate(interval, last_serviced, warning_buffer)
@@ -85,4 +96,10 @@ class CalendarTask(Task):
         else:
             return "ok"
 
+    def service_update(self, update_service):
+        if not isinstance(update_service, date):
+            raise TypeError("service date must be of type date (yr/mth/day)")
+        if update_service > date.today():
+            raise ValueError(f"The service date cannot be in the future (got {update_service})")
+        self.last_serviced = update_service
 
