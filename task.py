@@ -76,14 +76,18 @@ class CalendarTask(Task):
         self.warning_buffer = warning_buffer #days/month/year
 
     def _calendar_validate(self, interval, last_serviced, warning_buffer):
-        if not isinstance(last_serviced, date):
-            raise TypeError("last_serviced must be of type date")
-        if not isinstance(interval, relativedelta):
-            raise TypeError("interval must be of type relativedelta")
-        if not isinstance(warning_buffer, relativedelta):
-            raise TypeError("warning_buffer must be of type relativedelta")
-        if last_serviced > date.today():
-            raise ValueError(f"last_serviced cannot be in the future (got {last_serviced})")
+        self._instance_check(last_serviced, date, "last_serviced")
+        self._instance_check(interval, relativedelta, "interval")
+        self._instance_check(warning_buffer, relativedelta, "warning_buffer")
+        self._non_future_value(last_serviced, "last_serviced")
+
+    def _non_future_value(self, value, name):
+        if value > date.today():
+            raise ValueError(f"{name} cannot be set in the future (got {value})")
+
+    def _instance_check(self, value, expected_type, name):
+        if not isinstance(value, expected_type):
+            raise TypeError(f"{name} must be of type {expected_type.__name__}")
 
     def maintenance_due(self):
         due_date = self.last_serviced + self.interval
@@ -97,9 +101,7 @@ class CalendarTask(Task):
             return "ok"
 
     def service_update(self, update_service):
-        if not isinstance(update_service, date):
-            raise TypeError("service date must be of type date (yr/mth/day)")
-        if update_service > date.today():
-            raise ValueError(f"The service date cannot be in the future (got {update_service})")
+        self._instance_check(update_service, date, "update_service")
+        self._non_future_value(update_service, "update_service")
         self.last_serviced = update_service
 
