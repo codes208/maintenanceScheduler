@@ -1,7 +1,7 @@
 import unittest
 from datetime import date 
 from dateutil.relativedelta import relativedelta
-from component import CalendarTask
+from task import CalendarTask
 
 class TestCalendarTask(unittest.TestCase):
     def test_over_due(self):

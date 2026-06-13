@@ -26,21 +26,26 @@ class MeteringTask(Task):
         self.current_reading = current_reading
         self.warning_buffer = warning_buffer
 
+    def _require_non_negative(self, value, name):
+        if value < 0:
+            raise ValueError(f"{name} cannot be negative (got {value})")
+
+    def _require_serviced_not_after_reading(self, serviced, reading):
+        if serviced > reading:
+            raise ValueError(f"last_serviced ({serviced}) cannot be greater than current_reading ({reading})")
+
+    def _require_positive(self, value, name):
+        if value <= 0:
+            raise ValueError(f"{name} must be positive (got {value})")
+
     def _metering_validate(self, interval, last_serviced, unit, current_reading, warning_buffer):
         if unit not in VALID_UNITS:
             raise ValueError(f"unit must be one of the following: {VALID_UNITS}")
-        if last_serviced < 0:
-            raise ValueError(f"last_serviced cannot be negative (got {last_serviced})")
-        if current_reading < 0:
-            raise ValueError(f"current_reading cannot be negative (got {current_reading})")
-        if interval <= 0:
-            raise ValueError(f"interval must be positive (got {interval})")
-        if warning_buffer < 0:
-            raise ValueError(f"warning_buffer cannot be negative (got {warning_buffer})")
-        if last_serviced > current_reading:
-            raise ValueError(
-                f"last_serviced ({last_serviced}) cannot be greater than current_reading ({current_reading})"
-            )
+        self._require_positive(interval, "interval")
+        self._require_non_negative(last_serviced, "last_serviced")
+        self._require_non_negative(current_reading, "current_reading")
+        self._require_non_negative(warning_buffer, "warning_buffer")
+        self._require_serviced_not_after_reading(last_serviced, current_reading)
 
     def maintenance_due(self):
         elapsed = self.current_reading - self.last_serviced
@@ -52,18 +57,13 @@ class MeteringTask(Task):
             return "ok"
 
     def service_update(self, update_service):
-        if update_service < 0:
-            raise ValueError(f"The last service cannot be negative (got {update_service})")
-        if update_service > self.current_reading:
-            raise ValueError(f"The last service ({update_service}) cannot be greater than the current reading")
+        self._require_non_negative(update_service, "update_service")
+        self._require_serviced_not_after_reading(update_service, self.current_reading)
         self.last_serviced = update_service
 
     def reading_update(self, new_reading):
-        if new_reading < 0:
-            raise ValueError(f"The new_reading cannot be negative (got {new_reading})")
-        if new_reading < self.last_serviced:
-            raise ValueError(f"The current reading ({new_reading}) cannot be less than last serviced ({self.last_serviced})")
-
+        self._require_non_negative(new_reading, "new_reading")
+        self._require_serviced_not_after_reading(self.last_serviced, new_reading)
         self.current_reading = new_reading
 
 
