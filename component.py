@@ -1,14 +1,88 @@
-VALID_INTERVALS = ("miles", "hours", "days") 
+from datetime import date
+from dateutil.relativedelta import relativedelta
+
+VALID_UNITS = ("miles", "hours")
+
+class Task():
+    def __init__(self, name):
+        self.name = name
+
+    def maintenance_due(self):
+        raise NotImplementedError("Subclasses must implement maintenance_due()")
 
 class Component():
-    def __init__(self, name, interval_type, interval, current_reading=0, last_serviced=0, warning_buffer=0):
-        if interval_type not in VALID_INTERVALS:
-            raise ValueError(f"interval_type must be one of the following: {VALID_INTERVALS}")
+    def __init__(self, name):
         self.name = name
-        self.interval_type = interval_type
+        self.tasks = []
+
+    def add_task(self, task):
+        if not isinstance(task, Task):
+            raise TypeError("task must be a Task instance")
+        self.tasks.append(task)
+
+
+class MeteringTask(Task):
+    def __init__(self, name, interval, last_serviced, unit, current_reading, warning_buffer=0):
+        self._metering_validate(interval, last_serviced, unit, current_reading, warning_buffer)
+        super().__init__(name)
         self.interval = interval
-        self.current_reading = current_reading
         self.last_serviced = last_serviced
+        self.unit = unit
+        self.current_reading = current_reading
         self.warning_buffer = warning_buffer
+
+    def _metering_validate(self, interval, last_serviced, unit, current_reading, warning_buffer):
+        if unit not in VALID_UNITS:
+            raise ValueError(f"unit must be one of the following: {VALID_UNITS}")
+        if last_serviced < 0:
+            raise ValueError(f"last_serviced cannot be negative (got {last_serviced})")
+        if current_reading < 0:
+            raise ValueError(f"current_reading cannot be negative (got {current_reading})")
+        if interval <= 0:
+            raise ValueError(f"interval must be positive (got {interval})")
+        if warning_buffer < 0:
+            raise ValueError(f"warning_buffer cannot be negative (got {warning_buffer})")
+        if last_serviced > current_reading:
+            raise ValueError(
+                f"last_serviced ({last_serviced}) cannot be greater than current_reading ({current_reading})"
+            )
+
+    def maintenance_due(self):
+        elapsed = self.current_reading - self.last_serviced
+        if elapsed >= self.interval:
+            return "overdue"
+        elif elapsed >= self.interval - self.warning_buffer:
+            return "due_soon"
+        else:
+            return "ok"
+
+class CalendarTask(Task):
+    def __init__(self, name, interval, last_serviced, warning_buffer):
+        self._calendar_validate(interval, last_serviced, warning_buffer)
+        super().__init__(name)
+        self.interval = interval #days/month/year
+        self.last_serviced = last_serviced #date
+        self.warning_buffer = warning_buffer #days/month/year
+
+    def _calendar_validate(self, interval, last_serviced, warning_buffer):
+        if not isinstance(last_serviced, date):
+            raise TypeError("last_serviced must be of type date")
+        if not isinstance(interval, relativedelta):
+            raise TypeError("interval must be of type relativedelta")
+        if not isinstance(warning_buffer, relativedelta):
+            raise TypeError("warning_buffer must be of type relativedelta")
+        if last_serviced > date.today():
+            raise ValueError(f"last_serviced cannot be in the future (got {last_serviced})")
+
+    def maintenance_due(self):
+        due_date = self.last_serviced + self.interval
+        warn_date = due_date - self.warning_buffer
+        today = date.today()
+        if today >= due_date:
+            return "overdue"
+        elif today >= warn_date:
+            return "due_soon"
+        else:
+            return "ok"
 
 
