@@ -1,5 +1,7 @@
 from task import MeteringTask, Task
 
+STATUS_ORDER = ["ok", "due_soon", "overdue", "unknown"]
+
 class Asset:
     def __init__(self, name):
         self.name = name
@@ -8,7 +10,28 @@ class Asset:
     def add_component(self, component):
         if not isinstance(component, Component):
             raise TypeError("component must be a Component instance")
+        for existing in self.components:
+            if existing.name == component.name:
+                raise ValueError(f"a component named '{component.name}' already exists in this asset")
         self.components.append(component)
+
+    def status(self):
+        if not self.components:
+            return "ok"
+        statuses = []
+        for component in self.components:
+            statuses.append(component.status())
+        return max(statuses, key=lambda s: STATUS_ORDER.index(s))
+
+    def components_by_status(self, target):
+        if target not in STATUS_ORDER:
+            raise ValueError(f"target must be one of {STATUS_ORDER}")
+        result = {}
+        for component in self.components:
+            matching = component.tasks_by_status(target)
+            if matching:
+                result[component.name] = matching
+        return result
 
 class Component():
     def __init__(self, name, has_meter=False, meter_reading=None):
@@ -19,11 +42,20 @@ class Component():
         self.meter_reading = meter_reading
         self.tasks = []
 
+    def _task_status(self, task):
+        if isinstance(task, MeteringTask) and self.meter_reading is None:
+            return "unknown"
+        return task.maintenance_due(self.meter_reading)
+
     def add_task(self, task):
         if not isinstance(task, Task):
             raise TypeError("task must be a Task instance")
         if isinstance(task, MeteringTask) and not self.has_meter:
             raise ValueError("cannot add a metering task to a component without a meter")
+        for existing in self.tasks:
+            if existing.name == task.name:
+                raise ValueError(f"a task named '{task.name}' already exists in this list of tasks")
+
         self.tasks.append(task)
 
     def meter_update(self, new_reading):
@@ -38,3 +70,22 @@ class Component():
         if new_reading < highest_service:
             raise ValueError(f"reading ({new_reading}) cannot be below the latest serviced point ({highest_service})")
         self.meter_reading = new_reading
+
+    def status(self):
+        if not self.tasks:
+            return "ok"
+        statuses = []
+        for task in self.tasks:
+            statuses.append(self._task_status(task))
+        return max(statuses, key=lambda s: STATUS_ORDER.index(s))
+
+    def tasks_by_status(self, target):
+        if target not in STATUS_ORDER:
+            raise ValueError(f"target must be one of {STATUS_ORDER}")
+        result = []
+        for task in self.tasks:
+            current = self._task_status(task)
+            if current == target:
+                result.append(task)
+        return result
+
