@@ -1,7 +1,6 @@
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
-# Add helper function to get rid of the duplicate code for the non-negative values, and cannot log dates into the future
 
 VALID_UNITS = ("miles", "hours")
 
@@ -9,46 +8,41 @@ class Task():
     def __init__(self, name):
         self.name = name
 
-    def maintenance_due(self):
+    def maintenance_due(self, meter_reading=None):
         raise NotImplementedError("Subclasses must implement maintenance_due()")
 
-    def service_update(self, update_service):
+    def service_update(self, update_service, meter_reading=None):
         raise NotImplementedError("Subclasses must implement service_update()")
 
 
 class MeteringTask(Task):
-    def __init__(self, name, interval, last_serviced, unit, current_reading, warning_buffer=0):
-        self._metering_validate(interval, last_serviced, unit, current_reading, warning_buffer)
+    def __init__(self, name, interval, last_serviced, unit, warning_buffer=0):
+        self._metering_validate(interval, last_serviced, unit, warning_buffer)
         super().__init__(name)
         self.interval = interval
         self.last_serviced = last_serviced
         self.unit = unit
-        self.current_reading = current_reading
         self.warning_buffer = warning_buffer
 
     def _require_non_negative(self, value, name):
         if value < 0:
             raise ValueError(f"{name} cannot be negative (got {value})")
 
-    def _require_serviced_not_after_reading(self, serviced, reading):
-        if serviced > reading:
-            raise ValueError(f"last_serviced ({serviced}) cannot be greater than current_reading ({reading})")
-
     def _require_positive(self, value, name):
         if value <= 0:
             raise ValueError(f"{name} must be positive (got {value})")
 
-    def _metering_validate(self, interval, last_serviced, unit, current_reading, warning_buffer):
+    def _metering_validate(self, interval, last_serviced, unit, warning_buffer):
         if unit not in VALID_UNITS:
             raise ValueError(f"unit must be one of the following: {VALID_UNITS}")
         self._require_positive(interval, "interval")
         self._require_non_negative(last_serviced, "last_serviced")
-        self._require_non_negative(current_reading, "current_reading")
         self._require_non_negative(warning_buffer, "warning_buffer")
-        self._require_serviced_not_after_reading(last_serviced, current_reading)
 
-    def maintenance_due(self):
-        elapsed = self.current_reading - self.last_serviced
+    def maintenance_due(self, meter_reading=None):
+        if meter_reading is None:
+            raise ValueError("A metering task requires a meter reading")
+        elapsed = meter_reading - self.last_serviced
         if elapsed >= self.interval:
             return "overdue"
         elif elapsed >= self.interval - self.warning_buffer:
@@ -56,15 +50,11 @@ class MeteringTask(Task):
         else:
             return "ok"
 
-    def service_update(self, update_service):
+    def service_update(self, update_service, meter_reading=None):
         self._require_non_negative(update_service, "update_service")
-        self._require_serviced_not_after_reading(update_service, self.current_reading)
+        if update_service > meter_reading:
+            raise ValueError(f"Service point ({update_service}) cannot exceed meter reading ({meter_reading})")
         self.last_serviced = update_service
-
-    def reading_update(self, new_reading):
-        self._require_non_negative(new_reading, "new_reading")
-        self._require_serviced_not_after_reading(self.last_serviced, new_reading)
-        self.current_reading = new_reading
 
 
 class CalendarTask(Task):
@@ -89,7 +79,7 @@ class CalendarTask(Task):
         if not isinstance(value, expected_type):
             raise TypeError(f"{name} must be of type {expected_type.__name__}")
 
-    def maintenance_due(self):
+    def maintenance_due(self, meter_reading=None):
         due_date = self.last_serviced + self.interval
         warn_date = due_date - self.warning_buffer
         today = date.today()
@@ -100,7 +90,7 @@ class CalendarTask(Task):
         else:
             return "ok"
 
-    def service_update(self, update_service):
+    def service_update(self, update_service, meter_reading=None):
         self._instance_check(update_service, date, "update_service")
         self._non_future_value(update_service, "update_service")
         self.last_serviced = update_service
