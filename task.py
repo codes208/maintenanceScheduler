@@ -1,7 +1,7 @@
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
-
+STATUS_ORDER = ["ok", "due_soon", "overdue", "unknown"]
 VALID_UNITS = ("miles", "hours")
 
 class Task():

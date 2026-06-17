@@ -1,8 +1,10 @@
 import unittest
 from datetime import date
 from dateutil.relativedelta import relativedelta
-from asset import Asset, Component
+from asset import Component
 from task import CalendarTask, MeteringTask
+
+#MeteringTask(name, interval, last_serviced, unit, warning_buffer=0)
 
 class TestComponent(unittest.TestCase):
     def test_construction_stored_values(self):
@@ -59,6 +61,42 @@ class TestComponent(unittest.TestCase):
         comp = Component("Compressor#1", True, 1500)
         comp.add_task(CalendarTask("Filter", relativedelta(months=3), date.today(), relativedelta(weeks=1)))
         self.assertEqual(len(comp.tasks), 1)
+
+class TestComponentStatus(unittest.TestCase):
+    def test_empty_component_is_ok(self):
+        comp = Component("Compressor #1", True, 12000)
+        self.assertEqual(comp.status(), "ok")
+
+    def test_status_returns_worst(self):
+        comp = Component("Compressor #1", True, 12000)
+        comp.add_task(MeteringTask("Oil Change", 500, 11800, "hours", 50))
+        comp.add_task(MeteringTask("Bearings", 500, 11000, "hours", 50))
+        self.assertEqual(comp.status(), "overdue")
+
+    def test_blank_meter_gives_unknown(self):
+        comp = Component("Compressor #1", True)
+        comp.add_task(MeteringTask("Oil Change", 500, 11000, "hours", 50))
+        self.assertEqual(comp.status(), "unknown")
+
+    def test_unknown_outranks_overdue(self):
+        comp = Component("Compressor #1", True)
+        comp.add_task(MeteringTask("Oil change", 500, 11000, "hours", 50))
+        comp.add_task(CalendarTask("Bearing lube", relativedelta(months=3), (date.today() - relativedelta(months=6)), relativedelta(weeks = 1)))
+        self.assertEqual(comp.status(), "unknown")
+
+    def test_task_by_status_fileters(self):
+        comp = Component("Compressor #1", True, 12000)
+        oil = MeteringTask("Oil Change", 500, 11000, "hours", 50)
+        bearings = MeteringTask("Bearings", 500, 11900, "hours", 50)
+        comp.add_task(oil)
+        comp.add_task(bearings)
+        overdue = comp.tasks_by_status("overdue")
+        self.assertEqual(overdue, [oil])
+    
+    def test_tasks_by_status_rejects_bad_target(self):
+        comp = Component("Comp #1", True, 12000)
+        with self.assertRaises(ValueError):
+            comp.tasks_by_status("overdo")
 
 
         

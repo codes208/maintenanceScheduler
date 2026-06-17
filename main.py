@@ -2,7 +2,8 @@ import json
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from task import MeteringTask, CalendarTask
-from asset import Asset, Component
+from asset import Asset
+from component import Component
 
 # TODO CLI: warn when service_update value is below current last_serviced (legal but unusual — likely a typo)
 # CalendarTask(name, interval, last_serviced, warning_buffer):
