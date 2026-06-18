@@ -1,5 +1,7 @@
 from task import MeteringTask, Task, STATUS_ORDER
 
+# Add a delete component function
+
 class Component():
     def __init__(self, name, has_meter=False, meter_reading=None):
         if not has_meter and meter_reading is not None:
@@ -55,4 +57,14 @@ class Component():
             if current == target:
                 result.append(task)
         return result
+
+    def delete_task(self, name):
+        for task in self.tasks:
+            if task.name == name:
+                self.tasks.remove(task)
+                return
+        raise ValueError(f"no task named '{name}' was found in this component")
+
+    def report(self):
+        return {task.name: self._task_status(task) for task in self.tasks}
 

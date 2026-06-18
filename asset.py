@@ -1,5 +1,9 @@
 from component import Component
+import component
 from task import STATUS_ORDER
+
+# Add a report function that lists everything and that status nest dictonary
+# Add a delete component function
 
 class Asset:
     def __init__(self, name):
@@ -32,4 +36,13 @@ class Asset:
                 result[component.name] = matching
         return result
 
+    def delete_component(self, name):
+        for component in self.components:
+            if component.name == name:
+                self.components.remove(component)
+                return
+        raise ValueError(f"no component named '{name}' was found in this asset")
+
+    def report(self):
+        return {component.name: component.report() for component in self. components}
 
