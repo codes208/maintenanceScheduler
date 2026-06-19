@@ -1,9 +1,5 @@
 from component import Component
-import component
 from task import STATUS_ORDER
-
-# Add a report function that lists everything and that status nest dictonary
-# Add a delete component function
 
 class Asset:
     def __init__(self, name):
