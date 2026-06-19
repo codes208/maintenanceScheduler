@@ -98,6 +98,43 @@ class TestComponentStatus(unittest.TestCase):
         with self.assertRaises(ValueError):
             comp.tasks_by_status("overdo")
 
+class TestReport(unittest.TestCase):
+    def test_component_report_maps_tasks_to_status(self):
+        comp = Component("Compressor #1", True, 12000)
+        oil = MeteringTask("Oil Change", 500, 11000, "hours", 50)
+        bearings = MeteringTask("Bearings", 500, 11900, "hours", 50)
+        comp.add_task(oil)
+        comp.add_task(bearings)
+        self.assertEqual(
+            comp.report(), {"Oil Change" : "overdue", "Bearings": "ok"}
+        )
+
+    def test_empty_component_report_is_empty_dict(self):
+        comp = Component("Comp #1", True, 12000)
+        self.assertEqual(comp.report(), {})
+
+    def test_blank_meter_report_shows_unknown(self):
+        comp = Component("Comp #1", True)
+        comp.add_task(MeteringTask("Oil change", 500, 11000, "hours", 50))
+        self.assertEqual(comp.report(), {"Oil change": "unknown"})
+
+class TestTaskDelete(unittest.TestCase):
+    def test_delete_task_remove(self):
+        comp = Component("Compressor #1", True, 12000)
+        comp.add_task(MeteringTask("Oil change", 500, 11000, "hours", 50))
+        comp.delete_task("Oil change")
+        self.assertEqual(comp.tasks, [])
+
+    def test_delete_task_missing_raises(self):
+        comp = Component("Compressor #1", True, 12000)
+        with self.assertRaises(ValueError):
+            comp.delete_task("Nonexistent")
+
+
+
+
+
+
 
         
 

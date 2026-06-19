@@ -45,4 +45,40 @@ class TestAsset(unittest.TestCase):
             asset.add_component(Component("Compressor #1", True, 8000))
         
 
+class TestReport(unittest.TestCase):
+    def test_asset_report_nests_by_component(self):
+        asset = Asset("Refrigeration System")
+        c1 = Component("Compressor #1", True, 12000)
+        oil_change_1 = MeteringTask("Oil Change", 500, 11000, "hours", 50) # overdue
+        c1.add_task(oil_change_1)
+        c2 = Component("Compressor #2", True, 12000)
+        oil_change_2 = MeteringTask("Oil Change", 500, 10500, "hours", 50) # overdue
+        c2.add_task(oil_change_2)
+        evap_1 = Component("Evaporator #1")
+        fan_inspection = CalendarTask("Fan blade inspection", relativedelta(months=3), date.today(), relativedelta(weeks=1)) # ok
+        evap_1.add_task(fan_inspection)
+        asset.add_component(c1)
+        asset.add_component(c2)
+        asset.add_component(evap_1)
+        self.assertEqual(
+            asset.report(), 
+            {
+                "Compressor #1": {"Oil Change": "overdue"},
+                "Compressor #2": {"Oil Change": "overdue"},
+                "Evaporator #1": {"Fan blade inspection": "ok"}
+            }
+        )
+
+class TestDeletion(unittest.TestCase):
+    def test_delete_component_removes_it(self):
+        asset = Asset("Refrigeration System")
+        asset.add_component(Component("Compressor #1", True, 12000))
+        asset.delete_component("Compressor #1")
+        self.assertEqual(asset.components, [])
+
+    def test_delete_component_missing_raised(self):
+        asset = Asset("Refrigeration System")
+        with self.assertRaises(ValueError):
+            asset.delete_component("Nonexistent")
+
 
