@@ -1,4 +1,4 @@
-from task import MeteringTask, Task, STATUS_ORDER
+from task import MeteringTask, Task, STATUS_ORDER, task_from_dict
 
 # Add a delete component function
 
@@ -67,4 +67,20 @@ class Component():
 
     def report(self):
         return {task.name: self._task_status(task) for task in self.tasks}
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "has_meter": self.has_meter,
+            "meter_reading": self.meter_reading,
+            "tasks": [task.to_dict() for task in self.tasks]
+        }
+
+    @classmethod 
+    def from_dict(cls, data):
+        component =  cls(data["name"], data["has_meter"], data["meter_reading"])
+        for task_data in data["tasks"]:
+            component.add_task(task_from_dict(task_data))
+        return component
+        
 

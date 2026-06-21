@@ -130,6 +130,14 @@ class TestTaskDelete(unittest.TestCase):
         with self.assertRaises(ValueError):
             comp.delete_task("Nonexistent")
 
+class TestToDict(unittest.TestCase):
+    def test_component_round_trip(self):
+        comp = Component("Compressor #1", True, 12000)
+        comp.add_task(MeteringTask("Oil change", 500, 11500, "hours", 50))
+        comp.add_task(MeteringTask("Bearing lube", 2000, 11800, "hours", 100))
+        comp.add_task(CalendarTask("Bearing replacement", relativedelta(months=3), (date.today() - relativedelta(months=6)), relativedelta(weeks = 1)))
+        rebuilt = Component.from_dict(comp.to_dict())
+        self.assertEqual(rebuilt.to_dict(), comp.to_dict())
 
 
 
