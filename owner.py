@@ -41,3 +41,16 @@ class Owner:
 
     def report(self):
         return {asset.name: asset.report() for asset in self.assets}
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "assets": [asset.to_dict() for asset in self.assets]
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        owner = cls(data["name"])
+        for asset_data in data["assets"]:
+            owner.add_asset(Asset.from_dict(asset_data))
+        return owner

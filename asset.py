@@ -1,5 +1,6 @@
 from component import Component
-from task import STATUS_ORDER
+import component
+from task import STATUS_ORDER, task_from_dict
 
 class Asset:
     def __init__(self, name):
@@ -42,3 +43,15 @@ class Asset:
     def report(self):
         return {component.name: component.report() for component in self. components}
 
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "components": [component.to_dict() for component in self.components]
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        asset = cls(data["name"])
+        for component_data in data["components"]:
+            asset.add_component(Component.from_dict(component_data))
+        return asset

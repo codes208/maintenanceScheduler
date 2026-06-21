@@ -9,7 +9,6 @@ from task import CalendarTask, MeteringTask
 
 class TestAsset(unittest.TestCase):
     def test_asset_rolls_up_worst_component(self):
-        
         asset = Asset("Refrigeration System")
         c1 = Component("Compressor #1", True, 12000)
         c1.add_task(MeteringTask("Oil Change", 500, 11900, "hours", 50)) # ok
@@ -80,5 +79,23 @@ class TestDeletion(unittest.TestCase):
         asset = Asset("Refrigeration System")
         with self.assertRaises(ValueError):
             asset.delete_component("Nonexistent")
+
+class TestDictMethods(unittest.TestCase):
+    def test_asset_round_trip(self):
+        asset = Asset("Refrigeration System")
+        c1 = Component("Compressor #1", True, 12000)
+        oil_change_1 = MeteringTask("Oil Change", 500, 11000, "hours", 50) # overdue
+        c1.add_task(oil_change_1)
+        c2 = Component("Compressor #2", True, 12000)
+        oil_change_2 = MeteringTask("Oil Change", 500, 10500, "hours", 50) # overdue
+        c2.add_task(oil_change_2)
+        evap_1 = Component("Evaporator #1")
+        fan_inspection = CalendarTask("Fan blade inspection", relativedelta(months=3), date.today(), relativedelta(weeks=1)) # ok
+        evap_1.add_task(fan_inspection)
+        asset.add_component(c1)
+        asset.add_component(c2)
+        asset.add_component(evap_1)
+        rebuilt = Asset.from_dict(asset.to_dict())
+        self.assertEqual(rebuilt.to_dict(), asset.to_dict())
 
 

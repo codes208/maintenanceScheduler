@@ -76,3 +76,36 @@ class TestOwner(unittest.TestCase):
             }
         }
         self.assertEqual(owner.report(), expected)
+
+    def test_owner_round_trip(self):
+        owner = Owner("Cody")
+
+        asset = Asset("Refrigeration System")
+        c1 = Component("Compressor #1", True, 12000)
+        oil_change_1 = MeteringTask("Oil Change", 500, 11000, "hours", 50) # overdue
+        c1.add_task(oil_change_1)
+        c2 = Component("Compressor #2", True, 12000)
+        oil_change_2 = MeteringTask("Oil Change", 500, 10500, "hours", 50) # overdue
+        c2.add_task(oil_change_2)
+        evap_1 = Component("Evaporator #1")
+        fan_inspection = CalendarTask("Fan blade inspection", relativedelta(months=3), date.today(), relativedelta(weeks=1)) # ok
+        evap_1.add_task(fan_inspection)
+        asset.add_component(c1)
+        asset.add_component(c2)
+        asset.add_component(evap_1)
+        owner.add_asset(asset)
+
+        asset2 = Asset("Car")
+        tires = Component("Tires", True, 10000)
+        rotation = MeteringTask("Rotate", 10000, 5000, "miles", 500)
+        tires.add_task(rotation)
+        engine = Component("Engine", True, 10000)
+        oil_change = MeteringTask("Oil change", 5000, 7500, "miles", 1000)
+        engine.add_task(oil_change)
+        interior = Component("interior")
+        clean = CalendarTask("Detail", relativedelta(months=1), date.today(), relativedelta(days=21))
+        interior.add_task(clean)
+        owner.add_asset(asset2)
+
+        rebuilt = Owner.from_dict(owner.to_dict())
+        self.assertEqual(rebuilt.to_dict(), owner.to_dict())
