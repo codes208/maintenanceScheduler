@@ -35,4 +35,8 @@ class TestMeteringTask(unittest.TestCase):
         task = MeteringTask("Oil change", 500, 1200, "miles", 50)
         task.service_update(1700, 1800)
         self.assertEqual(task.last_serviced, 1700)
-
+    
+    def test_metering_task_round_trip(self):
+        original = MeteringTask("Oil change", 500, 11000, "hours", 50)
+        rebuilt = MeteringTask.from_dict(original.to_dict())
+        self.assertEqual(rebuilt.to_dict(), original.to_dict())

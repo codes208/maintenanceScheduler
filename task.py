@@ -1,10 +1,15 @@
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
-# Add a delete function
-
 STATUS_ORDER = ["ok", "due_soon", "overdue", "unknown"]
 VALID_UNITS = ("miles", "hours")
+
+def _rd_to_dict(rd):
+    return {"years": rd.years, "months": rd.months, "days": rd.days}
+
+def _rd_from_dict(time):
+    return relativedelta(years=time["years"], months=time["months"], days=time["days"])
+
 
 class Task():
     def __init__(self, name):
@@ -58,6 +63,26 @@ class MeteringTask(Task):
             raise ValueError(f"Service point ({update_service}) cannot exceed meter reading ({meter_reading})")
         self.last_serviced = update_service
 
+    def to_dict(self):
+        return {
+            "type": "metering",
+            "name": self.name,
+            "interval": self.interval,
+            "last_serviced": self.last_serviced,
+            "unit": self.unit,
+            "warning_buffer": self.warning_buffer
+        }
+    
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            data["name"], 
+            data["interval"], 
+            data["last_serviced"], 
+            data["unit"], 
+            data["warning_buffer"]
+        )
+
 
 class CalendarTask(Task):
     def __init__(self, name, interval, last_serviced, warning_buffer):
@@ -97,3 +122,27 @@ class CalendarTask(Task):
         self._non_future_value(update_service, "update_service")
         self.last_serviced = update_service
 
+    def to_dict(self):
+        return {
+            "type": "calendar",
+            "name": self.name,
+            "interval": _rd_to_dict(self.interval),
+            "last_serviced": self.last_serviced.isoformat(),
+            "warning_buffer": _rd_to_dict(self.warning_buffer)
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            data["name"], 
+            _rd_from_dict(data["interval"]), 
+            date.fromisoformat(data["last_serviced"]), 
+            _rd_from_dict(data["warning_buffer"]) 
+        )
+
+def task_from_dict(data):
+    if data["type"] == "metering":
+        return MeteringTask.from_dict(data)
+    elif data["type"] == "calendar":
+        return CalendarTask.from_dict(data)
+    raise ValueError(f"unknown task type: {data['type']}")

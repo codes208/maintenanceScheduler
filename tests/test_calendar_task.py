@@ -48,7 +48,9 @@ class TestCalendarTask(unittest.TestCase):
         with self.assertRaises(TypeError):
             CalendarTask("Oil", 90, date.today(), relativedelta(weeks=1))
 
-    
+    def test_calendar_round_trip(self):
+        original = CalendarTask("Piping inspection", relativedelta(months=3), date.today(), relativedelta(weeks=2))
+        rebuilt = CalendarTask.from_dict(original.to_dict())
+        self.assertEqual(rebuilt.to_dict(), original.to_dict())
 
-
-
+# CalendarTask(name, interval, last_serviced, warning_buffer)
