@@ -1,5 +1,4 @@
 import os
-from os.path import exists
 from owner import Owner
 from asset import Asset
 from component import Component
@@ -46,14 +45,97 @@ def show_help():
     print("Components with a meter track a reading: tasks become due as the meter climbs.")
     print("Status: ok / due_soon / overdue / unknown (meter not yet set).")
 
+def choose_from(items, label):
+    if not items:
+        print(f"\nNo {label}s available")
+        return None
+    print(f"\n{label.capitalize()}s:")
+    for i, item in enumerate(items, 1):
+        print(f"\t{i}. {item.name}")
+    raw = input(f"\nChoose {label} number (or blank to cancel): ").strip()
+    if not raw:
+        return None
+    try:
+        idx = int(raw) - 1
+        if idx < 0:
+                print("Invalid selection")
+                return None
+        return items[idx]
+    except (ValueError, IndexError):
+        print("Invalid selection")
+        return None
+
 def view_report(owner):
-    pass
+    print(f"\n============== {owner.name} ==============")
+    report = owner.report()
+
+    if not report:
+        print("\tNo assets to report on.")
+        return False
+
+    for asset_name, componets in report.items():
+        print(f"\n{asset_name}")
+        if not componets:
+            print("\t(no components to report)")
+        for component_name, tasks in componets.items():
+            print(f"\t{component_name}")
+            if not tasks:
+                print("\t\t(no tasks to report)")
+            for task_name, status in tasks.items():
+                print(f"\t\t{task_name}: {status}")
+    return False
 
 def add_asset(owner):
-    pass
+    asset = input("\nEnter an Asset name (or blank to cancel): ").strip()
+    if not asset:
+        print("Cancelled.")
+        return False
+    try:
+        owner.add_asset(Asset(asset))
+        print(f"\nAdded asset '{asset}'.")
+        return True
+    except ValueError as e:
+        print(f"\nError: {e}")
+        return False
+
 
 def add_component(owner):
-    pass
+    if not owner.assets:
+        print("\nNo assets yet - add an asset first.")
+        return False
+    asset = choose_from(owner.assets, "asset")
+    if asset is None:
+        return False
+    name = input("\nComponent name (or blank to cancel): ").strip()
+    if not name:
+        print("\nCancelled.")
+        return False
+    while True:
+        answer = input("\nDoes this component have a meter? (y/n): ").strip().lower()
+        if answer in ("y", "yes"):
+            has_meter = True
+            break
+        elif answer in ("n", "no"):
+            has_meter = False
+            break
+        else:
+            print("\nPlease enter y or n.")
+    reading = None
+    if has_meter:
+        raw = input("\nCurrent meter reading (or blank to set later): ").strip()
+        if raw:
+            try:
+                reading = int(raw)
+            except ValueError:
+                print("\nReading must be a number.")
+                return False
+    try:
+        asset.add_component(Component(name, has_meter, reading))
+        print(f"Added component '{name}' to '{asset.name}'.")
+        return True
+    except (ValueError, TypeError) as e:
+        print(f"Error: {e}")
+        return False
 
 def add_task(owner):
     pass
@@ -71,7 +153,7 @@ def main():
 
     while True:
         show_menu()
-        choice = input("> ").strip()
+        choice = input("\nEnter a number: ").strip()
     
         match choice:
             case "1":
@@ -89,7 +171,7 @@ def main():
             case "7":
                 save(owner, DEFAULT_PATH)
                 dirty = False
-                print("Saved.")
+                print("\nSaved.")
             case "8":
                 show_help()
             case "9":
@@ -99,7 +181,7 @@ def main():
                         save(owner, DEFAULT_PATH)
                         print("Saved.")
                 print("Goodbye.")
-                break;
+                break
             case _:
                 print("Invalid choice, try again.")
 
